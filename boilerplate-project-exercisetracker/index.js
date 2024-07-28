@@ -70,7 +70,6 @@ app.get('/api/users',(req,res)=>{
   // find all athletes that play tennis
   User.find()
   .then((data)=>{
-    console.log(data)
     res.send(data)
   }).catch((error)=>{
     console.error(error)
@@ -80,14 +79,13 @@ app.get('/api/users',(req,res)=>{
 /************POST Exercises *****************************/
 //POST fromt the form "/api/users/:_id/exercises"
 /app.post("/api/users/:_id/exercises",(req,res)=>{
-
   let date = new Date().toDateString()
   if(req.body.date){
     date = new Date(req.body.date).toDateString()
   }
-  const user_id = req.params._id
+  const user_id = String( req.params._id )
   const description = req.body.description
-  const duration = req.body.duration
+  const duration = Number( req.body.duration )
   let username = ""
 
 //create a new instance of userschema for new document
@@ -115,20 +113,49 @@ new_log.save()
 /********Logs********************************************/
 app.get("/api/users/:_id/logs",(req,res)=>{
 
-  const user_id = req.params._id
+console.log("begin of query")
+console.log(req.query)
+console.log("end of query")
 
-    let username = ""
+const user_id = req.params._id
+//from 
+const fromDate = req.query.from
+//to
+const toDate = req.query.to
+//limit
+const limit = req.query.limit
+
+let username = ""
 //find the user and get the user name
 User.findById(user_id)
 .then((data)=>{ username = data.username })
 .catch(error=>console.error(error))
 
-Log.find({user_id: user_id})
+//{user_id: user_id, date:{$gte:fromDate,$lte:toDate}}
+let filter = {user_id:user_id}
+if( fromDate && toDate){
+filter = {user_id: user_id, date:{$gte:fromDate,$lte:toDate}}
+}
+else if(fromDate){
+  filter = {user_id: user_id, date:{$gte:fromDate}}
+  }
+else if(toDate){
+filter = {user_id: user_id, date:{$lte:toDate}}
+}
+
+
+Log.find(filter).limit(limit)
+//      find({ airedAt: { $gte: '1987-10-19', $lte: '1987-10-26' } }).
 .then((logs)=>{
-  let aLogs = []
-  aLogs = logs
-  console.log(aLogs.length)
-  res.json(logs)
+  let logsMapped = logs.map(log => {
+    let properties = {
+      "description": log.description,
+      "duration" : log.duration,
+      "date": log.date
+    };
+    return properties;
+   });
+  res.json({"id":user_id,"username":username,"count":logsMapped.length,"log":logsMapped})
 })
 .catch(error=>console.error(error))
 

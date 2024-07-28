@@ -32,7 +32,7 @@ const logSchema = new Schema({
   user_id : {type : String, required:true},
   description: {type : String, required:true},
   duration: {type:Number,required:true},
-  date: String
+  date: Date
 })
 
 //now with this schema, we need to create model - using the methods of model we can save
@@ -79,9 +79,9 @@ app.get('/api/users',(req,res)=>{
 /************POST Exercises *****************************/
 //POST fromt the form "/api/users/:_id/exercises"
 /app.post("/api/users/:_id/exercises",(req,res)=>{
-  let date = new Date().toDateString()
+  let date = new Date() //.toDateString()
   if(req.body.date){
-    date = new Date(req.body.date).toDateString()
+    date = new Date(req.body.date) //.toDateString()
   }
   const user_id = String( req.params._id )
   const description = req.body.description
@@ -104,7 +104,7 @@ User.findById(user_id)
 //save document
 new_log.save()
 .then((data)=>{
-  res.json({"_id":user_id,"username":username,"date":date,"duration":duration,"description":description}) })
+  res.json({"_id":user_id,"username":username,"date":date.toDateString(),"duration":duration,"description":description}) })
 .catch(error=>console.error(error))
 
 
@@ -113,15 +113,8 @@ new_log.save()
 /********Logs********************************************/
 app.get("/api/users/:_id/logs",(req,res)=>{
 
-console.log("begin of query")
-console.log(req.query)
-console.log("end of query")
-
 const user_id = req.params._id
-//from 
-const fromDate = req.query.from
-//to
-const toDate = req.query.to
+
 //limit
 const limit = req.query.limit
 
@@ -133,25 +126,27 @@ User.findById(user_id)
 
 //{user_id: user_id, date:{$gte:fromDate,$lte:toDate}}
 let filter = {user_id:user_id}
-if( fromDate && toDate){
+if( req.query.from && req.query.to){
+  let fromDate = new Date(req.query.from)
+  let toDate = new Date(req.query.to)
 filter = {user_id: user_id, date:{$gte:fromDate,$lte:toDate}}
 }
-else if(fromDate){
+else if(req.query.from){
+  let fromDate = new Date(req.query.from)
   filter = {user_id: user_id, date:{$gte:fromDate}}
   }
-else if(toDate){
+else if(req.query.to){
+  let toDate = new Date(req.query.to)  
 filter = {user_id: user_id, date:{$lte:toDate}}
 }
 
-
 Log.find(filter).limit(limit)
-//      find({ airedAt: { $gte: '1987-10-19', $lte: '1987-10-26' } }).
 .then((logs)=>{
   let logsMapped = logs.map(log => {
     let properties = {
       "description": log.description,
       "duration" : log.duration,
-      "date": log.date
+      "date": log.date.toDateString()
     };
     return properties;
    });
